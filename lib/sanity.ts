@@ -16,10 +16,9 @@ export const client = projectId
     })
   : null as any
 
-const builder = imageUrlBuilder(client)
-
 export function urlFor(source: any) {
-  return builder.image(source)
+  if (!client) return { url: () => '' } as any
+  return imageUrlBuilder(client).image(source)
 }
 
 // GROQ queries
