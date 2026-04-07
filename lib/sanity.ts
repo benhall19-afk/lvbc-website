@@ -41,3 +41,11 @@ export const sermonsQuery = `*[_type == "sermon"] | order(date desc){
 export const pageQuery = `*[_type == "page" && slug.current == $slug][0]{
   _id, title, slug, pageType, language, content, contentHtml, featuredImage, seoDescription
 }`
+
+export const bibleStudyQuery = `*[_type == "bibleStudy" && slug.current == $slug][0]{
+  _id, title, slug, course, lessonNumber, content, contentHtml, originalUrl
+}`
+
+export const bibleStudiesQuery = `*[_type == "bibleStudy"] | order(course asc, lessonNumber asc){
+  _id, title, slug, course, lessonNumber
+}`

@@ -1,31 +1,55 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { client, testimonyQuery, pageQuery } from '@/lib/sanity'
+import Link from 'next/link'
+import { client } from '@/lib/sanity'
 
 interface Props {
   params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
-  const doc = await getDocument(slug)
-  if (!doc) return { title: 'Not Found' }
-  return {
-    title: doc.title,
-    description: doc.author ? `A testimony by ${doc.author}` : doc.seoDescription || '',
-  }
+export async function generateStaticParams() {
+  if (!client) return []
+  const [testimonies, pages, studies] = await Promise.all([
+    client.fetch(`*[_type == "testimony"]{"slug": slug.current}`),
+    client.fetch(`*[_type == "page"]{"slug": slug.current}`),
+    client.fetch(`*[_type == "bibleStudy"]{"slug": slug.current}`),
+  ])
+  return [...testimonies, ...pages, ...studies]
+    .filter((d: any) => d.slug)
+    .map((d: any) => ({ slug: d.slug }))
 }
 
 async function getDocument(slug: string) {
-  if (!process.env.NEXT_PUBLIC_SANITY_PROJECT_ID) return null
+  if (!client) return null
   try {
-    // Try testimony first (most common short-slug content)
-    const testimony = await client.fetch(testimonyQuery, { slug })
+    // Try each content type in order of most common
+    const testimony = await client.fetch(
+      `*[_type == "testimony" && slug.current == $slug][0]{
+        _id, title, slug, author, content, contentHtml, language, publishedDate, originalUrl
+      }`, { slug }
+    )
     if (testimony) return { ...testimony, _docType: 'testimony' }
 
-    // Fall back to generic page
-    const page = await client.fetch(pageQuery, { slug })
+    const page = await client.fetch(
+      `*[_type == "page" && slug.current == $slug][0]{
+        _id, title, slug, pageType, content, contentHtml, seoDescription, originalUrl
+      }`, { slug }
+    )
     if (page) return { ...page, _docType: 'page' }
+
+    const bibleStudy = await client.fetch(
+      `*[_type == "bibleStudy" && slug.current == $slug][0]{
+        _id, title, slug, course, lessonNumber, content, contentHtml, originalUrl
+      }`, { slug }
+    )
+    if (bibleStudy) return { ...bibleStudy, _docType: 'bibleStudy' }
+
+    const sermon = await client.fetch(
+      `*[_type == "sermon" && slug.current == $slug][0]{
+        _id, title, slug, date, speaker, series, biblePassage, audioUrl, videoUrl, description, content, contentHtml, originalUrl
+      }`, { slug }
+    )
+    if (sermon) return { ...sermon, _docType: 'sermon' }
 
     return null
   } catch {
@@ -33,51 +57,61 @@ async function getDocument(slug: string) {
   }
 }
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const doc = await getDocument(slug)
+  if (!doc) return { title: 'Not Found' }
+
+  const description = doc.seoDescription
+    || (doc._docType === 'testimony' ? `A personal testimony by ${doc.author || 'a member of LVBC'}` : '')
+    || (doc._docType === 'sermon' ? `${doc.speaker ? `By ${doc.speaker}` : 'Sermon'} — ${doc.biblePassage || ''}` : '')
+    || `${doc.title} — Lehigh Valley Baptist Church`
+
+  return {
+    title: doc.title,
+    description,
+    openGraph: { title: doc.title, description },
+  }
+}
+
+function renderContent(doc: any) {
+  // Use plain text content — contentHtml has WordPress-specific markup
+  const text = doc.content
+  if (!text) return <p style={{ color: 'var(--text-muted)' }}>Content coming soon.</p>
+
+  return (
+    <div className="prose prose-lg max-w-none leading-relaxed" style={{ color: 'var(--text)' }}>
+      {text.split('\n\n').map((paragraph: string, i: number) => {
+        // Handle headings (lines that are short and followed by content)
+        const trimmed = paragraph.trim()
+        if (!trimmed) return null
+        return <p key={i} className="mb-4">{trimmed}</p>
+      })}
+    </div>
+  )
+}
+
 export default async function SlugPage({ params }: Props) {
   const { slug } = await params
   const doc = await getDocument(slug)
 
   if (!doc) {
-    // During migration, show a placeholder instead of 404
-    if (!process.env.NEXT_PUBLIC_SANITY_PROJECT_ID) {
-      return (
-        <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
-          <div className="max-w-2xl mx-auto px-6 text-center">
-            <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--lvbc-primary)' }}>
-              Content Migration in Progress
-            </h1>
-            <p style={{ color: 'var(--text-muted)' }}>
-              This page will be available once content is imported from lvbaptist.org.
-            </p>
-          </div>
-        </div>
-      )
-    }
     notFound()
   }
 
-  const isTestimony = doc._docType === 'testimony'
-
-  return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      {/* Header */}
-      <div
-        className="py-16 text-center text-white"
-        style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-mint))' }}
-      >
-        {isTestimony && (
+  if (doc._docType === 'testimony') {
+    return (
+      <>
+        <div
+          className="py-16 text-center text-white"
+          style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-mint))' }}
+        >
           <p className="text-sm uppercase tracking-widest mb-3 opacity-80">Changed Lives</p>
-        )}
-        <h1 className="text-3xl md:text-4xl font-bold px-4 max-w-3xl mx-auto">{doc.title}</h1>
-        {doc.author && (
-          <p className="mt-3 opacity-90">By {doc.author}</p>
-        )}
-      </div>
-
-      {/* Content */}
-      <article className="max-w-3xl mx-auto px-4 py-16">
-        {isTestimony && (
-          <div className="glass rounded-2xl p-2 mb-8 flex items-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-bold px-4 max-w-3xl mx-auto">{doc.title}</h1>
+          {doc.author && <p className="mt-3 opacity-90">By {doc.author}</p>}
+        </div>
+        <article className="max-w-3xl mx-auto px-4 py-16">
+          <div className="glass rounded-2xl p-4 mb-8 flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
               style={{ background: 'var(--lvbc-mint)' }}
@@ -92,19 +126,104 @@ export default async function SlugPage({ params }: Props) {
                 </p>
               )}
             </div>
+            {doc.language === 'es' && (
+              <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>
+                Español
+              </span>
+            )}
           </div>
-        )}
+          {renderContent(doc)}
+        </article>
+      </>
+    )
+  }
 
-        {/* Text content — word-for-word for testimonies */}
+  if (doc._docType === 'sermon') {
+    return (
+      <>
         <div
-          className="prose prose-lg max-w-none leading-relaxed"
-          style={{ color: 'var(--text)', fontFamily: 'Georgia, serif' }}
+          className="py-16 text-center text-white"
+          style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-primary-light))' }}
         >
-          {doc.content?.split('\n\n').map((paragraph: string, i: number) => (
-            <p key={i} className="mb-4">{paragraph}</p>
-          ))}
+          <p className="text-sm uppercase tracking-widest mb-3 opacity-80">Sermon</p>
+          <h1 className="text-3xl md:text-4xl font-bold px-4 max-w-3xl mx-auto">{doc.title}</h1>
+          <div className="mt-3 opacity-90 space-x-3">
+            {doc.speaker && <span>{doc.speaker}</span>}
+            {doc.date && <span>· {new Date(doc.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>}
+          </div>
         </div>
+        <article className="max-w-3xl mx-auto px-4 py-16">
+          <div className="glass rounded-2xl p-6 mb-8">
+            <div className="flex flex-wrap gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
+              {doc.biblePassage && <div><strong>Scripture:</strong> {doc.biblePassage}</div>}
+              {doc.series && <div><strong>Series:</strong> {doc.series}</div>}
+            </div>
+            {doc.audioUrl && (
+              <div className="mt-4">
+                <audio controls className="w-full" preload="none">
+                  <source src={doc.audioUrl} />
+                </audio>
+              </div>
+            )}
+            {doc.videoUrl && (
+              <div className="mt-4">
+                <a
+                  href={doc.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 rounded-full text-white text-sm font-semibold"
+                  style={{ background: 'var(--lvbc-accent)' }}
+                >
+                  Watch Video
+                </a>
+              </div>
+            )}
+          </div>
+          {(doc.content || doc.description) && renderContent({ content: doc.content || doc.description })}
+        </article>
+      </>
+    )
+  }
+
+  if (doc._docType === 'bibleStudy') {
+    return (
+      <>
+        <div
+          className="py-16 text-center text-white"
+          style={{ background: 'linear-gradient(135deg, var(--lvbc-mint), var(--lvbc-primary))' }}
+        >
+          <p className="text-sm uppercase tracking-widest mb-3 opacity-80">Bible Study</p>
+          <h1 className="text-3xl md:text-4xl font-bold px-4 max-w-3xl mx-auto">{doc.title}</h1>
+          {doc.course && <p className="mt-3 opacity-90">{doc.course} Course</p>}
+        </div>
+        <article className="max-w-3xl mx-auto px-4 py-16">
+          {renderContent(doc)}
+          <div className="mt-8 text-center">
+            <Link
+              href="/free-bible-study-offer"
+              className="inline-block px-6 py-3 rounded-full text-white font-semibold"
+              style={{ background: 'var(--lvbc-mint)' }}
+            >
+              View All Bible Studies
+            </Link>
+          </div>
+        </article>
+      </>
+    )
+  }
+
+  // Generic page
+  return (
+    <>
+      <div
+        className="py-16 text-center text-white"
+        style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-primary-light))' }}
+      >
+        <h1 className="text-3xl md:text-4xl font-bold px-4 max-w-3xl mx-auto">{doc.title}</h1>
+      </div>
+      <article className="max-w-3xl mx-auto px-4 py-16">
+        {renderContent(doc)}
       </article>
-    </div>
+    </>
   )
 }
