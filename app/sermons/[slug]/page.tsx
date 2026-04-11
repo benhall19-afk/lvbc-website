@@ -1,8 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { client } from '@/lib/sanity'
-import { SermonJsonLd } from '@/components/StructuredData'
-
 interface Props {
   params: Promise<{ slug: string }>
 }
@@ -60,15 +58,19 @@ export default async function SermonPage({ params }: Props) {
 
   if (!sermon) notFound()
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    name: sermon.title,
+    author: sermon.speaker ? { '@type': 'Person', name: sermon.speaker } : undefined,
+    datePublished: sermon.date || undefined,
+    about: sermon.biblePassage || undefined,
+    url: `https://lvbaptist.org/sermons/${slug}`,
+  }
+
   return (
     <>
-      <SermonJsonLd
-        title={sermon.title}
-        speaker={sermon.speaker}
-        date={sermon.date}
-        passage={sermon.biblePassage}
-        url={`https://lvbaptist.org/sermons/${slug}`}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div
         className="py-16 text-center text-white"
         style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-primary-light))' }}
