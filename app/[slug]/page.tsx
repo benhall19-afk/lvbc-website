@@ -75,20 +75,54 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 function renderContent(doc: any) {
-  // Use plain text content — contentHtml has WordPress-specific markup
-  const text = doc.content
-  if (!text) return <p style={{ color: 'var(--text-muted)' }}>Content coming soon.</p>
+  const html = doc.contentHtml || doc.content
+  if (!html) return <p style={{ color: 'var(--text-muted)' }}>Content coming soon.</p>
+
+  if (doc.contentHtml) {
+    return (
+      <div
+        className="prose prose-lg max-w-none leading-relaxed"
+        style={{ color: 'var(--text)' }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    )
+  }
 
   return (
     <div className="prose prose-lg max-w-none leading-relaxed" style={{ color: 'var(--text)' }}>
-      {text.split('\n\n').map((paragraph: string, i: number) => {
-        // Handle headings (lines that are short and followed by content)
+      {html.split('\n\n').map((paragraph: string, i: number) => {
         const trimmed = paragraph.trim()
         if (!trimmed) return null
         return <p key={i} className="mb-4">{trimmed}</p>
       })}
     </div>
   )
+}
+
+function getJsonLd(doc: any) {
+  if (doc._docType === 'testimony') {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: doc.title,
+      author: { '@type': 'Person', name: doc.author || 'Anonymous' },
+      datePublished: doc.publishedDate || undefined,
+      publisher: { '@type': 'Organization', name: 'Lehigh Valley Baptist Church' },
+      url: `https://lvbaptist.org/${doc.slug?.current}`,
+    }
+  }
+  if (doc._docType === 'sermon') {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'CreativeWork',
+      name: doc.title,
+      author: doc.speaker ? { '@type': 'Person', name: doc.speaker } : undefined,
+      datePublished: doc.date || undefined,
+      about: doc.biblePassage || undefined,
+      url: `https://lvbaptist.org/sermons/${doc.slug?.current}`,
+    }
+  }
+  return null
 }
 
 export default async function SlugPage({ params }: Props) {
@@ -99,9 +133,14 @@ export default async function SlugPage({ params }: Props) {
     notFound()
   }
 
+  const jsonLd = getJsonLd(doc)
+
   if (doc._docType === 'testimony') {
     return (
       <>
+        {jsonLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        )}
         <div
           className="py-16 text-center text-white"
           style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-mint))' }}
@@ -141,6 +180,9 @@ export default async function SlugPage({ params }: Props) {
   if (doc._docType === 'sermon') {
     return (
       <>
+        {jsonLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        )}
         <div
           className="py-16 text-center text-white"
           style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-primary-light))' }}

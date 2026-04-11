@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import MobileNav from './components/MobileNav'
+import GoogleAnalytics from './components/GoogleAnalytics'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -19,7 +21,10 @@ export const metadata: Metadata = {
 function Header() {
   return (
     <header className="sticky top-0 z-50 glass border-b border-white/20">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-sm focus:font-semibold" style={{ color: 'var(--lvbc-primary)' }}>
+        Skip to content
+      </a>
+      <nav className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" aria-label="Main navigation">
         <Link href="/" className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
@@ -31,12 +36,12 @@ function Header() {
             Lehigh Valley Baptist Church
           </span>
         </Link>
-        <div className="flex items-center gap-6 text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-          <Link href="/about-us" className="hover:text-lvbc-primary transition-colors hidden md:block">About</Link>
-          <Link href="/ministries" className="hover:text-lvbc-primary transition-colors hidden md:block">Ministries</Link>
-          <Link href="/service-archive" className="hover:text-lvbc-primary transition-colors hidden md:block">Sermons</Link>
-          <Link href="/changed-lives" className="hover:text-lvbc-primary transition-colors hidden md:block">Changed Lives</Link>
-          <Link href="/know-god" className="hover:text-lvbc-primary transition-colors hidden md:block">Know God</Link>
+        <div className="hidden md:flex items-center gap-6 text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+          <Link href="/about-us" className="hover:text-lvbc-primary transition-colors">About</Link>
+          <Link href="/ministries" className="hover:text-lvbc-primary transition-colors">Ministries</Link>
+          <Link href="/service-archive" className="hover:text-lvbc-primary transition-colors">Sermons</Link>
+          <Link href="/changed-lives" className="hover:text-lvbc-primary transition-colors">Changed Lives</Link>
+          <Link href="/know-god" className="hover:text-lvbc-primary transition-colors">Know God</Link>
           <Link
             href="/contact-us"
             className="px-4 py-2 rounded-full text-white text-sm font-semibold transition-all hover:opacity-90"
@@ -45,6 +50,7 @@ function Header() {
             Contact
           </Link>
         </div>
+        <MobileNav />
       </nav>
     </header>
   )
@@ -71,12 +77,43 @@ function Footer() {
   )
 }
 
+const churchJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Church',
+  name: 'Lehigh Valley Baptist Church',
+  url: 'https://lvbaptist.org',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '4100 Dorney Park Road',
+    addressLocality: 'Allentown',
+    addressRegion: 'PA',
+    postalCode: '18104',
+    addressCountry: 'US',
+  },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: 40.5737,
+    longitude: -75.5349,
+  },
+  openingHoursSpecification: [
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Sunday', opens: '09:45', closes: '19:00' },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Wednesday', opens: '19:00', closes: '20:30' },
+  ],
+}
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full antialiased scroll-smooth">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(churchJsonLd) }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
+        <GoogleAnalytics />
         <Header />
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1">{children}</main>
         <Footer />
       </body>
     </html>
