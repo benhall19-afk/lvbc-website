@@ -5,6 +5,17 @@ import { client } from '@/lib/sanity'
 export const metadata: Metadata = {
   title: 'Free Bible Study',
   description: 'Sign up for a free Bible study course from Lehigh Valley Baptist Church.',
+  alternates: { canonical: 'https://lvbaptist.org/free-bible-study-offer' },
+  openGraph: {
+    title: 'Free Bible Study | Lehigh Valley Baptist Church',
+    description: 'Study God\'s Word at your own pace with free Bible study courses from Lehigh Valley Baptist Church.',
+    url: 'https://lvbaptist.org/free-bible-study-offer',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Free Bible Study | Lehigh Valley Baptist Church',
+    description: 'Free Bible study courses from Lehigh Valley Baptist Church.',
+  },
 }
 
 async function getBibleStudies() {

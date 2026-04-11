@@ -5,6 +5,17 @@ import { client } from '@/lib/sanity'
 export const metadata: Metadata = {
   title: 'Sermon Archive',
   description: 'Browse our complete archive of sermons and messages from Lehigh Valley Baptist Church.',
+  alternates: { canonical: 'https://lvbaptist.org/service-archive' },
+  openGraph: {
+    title: 'Sermon Archive | Lehigh Valley Baptist Church',
+    description: 'Browse our complete archive of sermons and messages from Lehigh Valley Baptist Church.',
+    url: 'https://lvbaptist.org/service-archive',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Sermon Archive | Lehigh Valley Baptist Church',
+    description: 'Browse our complete archive of sermons and messages.',
+  },
 }
 
 async function getSermons() {

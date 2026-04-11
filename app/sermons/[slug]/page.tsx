@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { client } from '@/lib/sanity'
+import { SermonJsonLd } from '@/components/StructuredData'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -31,9 +32,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const sermon = await getSermon(slug)
   if (!sermon) return { title: 'Sermon Not Found' }
   const desc = [sermon.speaker, sermon.biblePassage, sermon.series].filter(Boolean).join(' — ')
+  const description = desc || 'Sermon from Lehigh Valley Baptist Church'
+  const url = `https://lvbaptist.org/sermons/${slug}`
   return {
     title: sermon.title,
-    description: desc || `Sermon from Lehigh Valley Baptist Church`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: sermon.title,
+      description,
+      url,
+      type: 'article',
+      ...(sermon.date && { publishedTime: sermon.date }),
+      ...(sermon.speaker && { authors: [sermon.speaker] }),
+    },
+    twitter: {
+      card: 'summary',
+      title: sermon.title,
+      description,
+    },
   }
 }
 
@@ -45,6 +62,13 @@ export default async function SermonPage({ params }: Props) {
 
   return (
     <>
+      <SermonJsonLd
+        title={sermon.title}
+        speaker={sermon.speaker}
+        date={sermon.date}
+        passage={sermon.biblePassage}
+        url={`https://lvbaptist.org/sermons/${slug}`}
+      />
       <div
         className="py-16 text-center text-white"
         style={{ background: 'linear-gradient(135deg, var(--lvbc-primary), var(--lvbc-primary-light))' }}
@@ -90,12 +114,18 @@ export default async function SermonPage({ params }: Props) {
           )}
         </div>
 
-        {(sermon.content || sermon.description) && (
-          <div className="prose prose-lg max-w-none leading-relaxed" style={{ color: 'var(--text)' }}>
-            {(sermon.content || sermon.description).split('\n\n').map((p: string, i: number) => (
-              <p key={i} className="mb-4">{p.trim()}</p>
-            ))}
-          </div>
+        {(sermon.contentHtml || sermon.content || sermon.description) && (
+          sermon.contentHtml ? (
+            <div className="prose-content" dangerouslySetInnerHTML={{ __html: sermon.contentHtml }} />
+          ) : (
+            <div className="prose-content">
+              {(sermon.content || sermon.description).split('\n\n').map((p: string, i: number) => {
+                const trimmed = p.trim()
+                if (!trimmed) return null
+                return <p key={i}>{trimmed}</p>
+              })}
+            </div>
+          )
         )}
       </article>
     </>

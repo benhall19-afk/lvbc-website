@@ -5,6 +5,17 @@ import { client } from '@/lib/sanity'
 export const metadata: Metadata = {
   title: 'Changed Lives',
   description: 'Personal testimonies of lives changed by the gospel of Jesus Christ at Lehigh Valley Baptist Church.',
+  alternates: { canonical: 'https://lvbaptist.org/changed-lives' },
+  openGraph: {
+    title: 'Changed Lives | Lehigh Valley Baptist Church',
+    description: 'Personal testimonies of lives changed by the gospel of Jesus Christ at Lehigh Valley Baptist Church.',
+    url: 'https://lvbaptist.org/changed-lives',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Changed Lives | Lehigh Valley Baptist Church',
+    description: 'Personal testimonies of lives changed by the gospel.',
+  },
 }
 
 async function getTestimonies() {
