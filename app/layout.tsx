@@ -5,16 +5,27 @@ import GoogleAnalytics from './components/GoogleAnalytics'
 import './globals.css'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://lvbaptist.org'),
   title: {
     default: 'Lehigh Valley Baptist Church',
     template: '%s | Lehigh Valley Baptist Church',
   },
-  description: 'A gospel-preaching, Bible-believing church in the Lehigh Valley, Pennsylvania.',
+  description: 'A gospel-preaching, Bible-believing church in the Lehigh Valley, Pennsylvania, serving the community since 1956.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://lvbaptist.org',
     siteName: 'Lehigh Valley Baptist Church',
+    title: 'Lehigh Valley Baptist Church',
+    description: 'A gospel-preaching, Bible-believing church in the Lehigh Valley, Pennsylvania, serving the community since 1956.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Lehigh Valley Baptist Church',
+    description: 'A gospel-preaching, Bible-believing church in the Lehigh Valley, Pennsylvania.',
+  },
+  alternates: {
+    canonical: 'https://lvbaptist.org',
   },
 }
 

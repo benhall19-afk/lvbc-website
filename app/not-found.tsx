@@ -31,14 +31,14 @@ export default function NotFound() {
           </Link>
           <Link
             href="/changed-lives"
-            className="px-6 py-3 rounded-full font-semibold transition-all hover:scale-105 glass"
+            className="px-6 py-3 rounded-full font-semibold transition-all hover:scale-105 glass border border-white/40"
             style={{ color: 'var(--lvbc-primary)' }}
           >
             Read Testimonies
           </Link>
           <Link
             href="/service-archive"
-            className="px-6 py-3 rounded-full font-semibold transition-all hover:scale-105 glass"
+            className="px-6 py-3 rounded-full font-semibold transition-all hover:scale-105 glass border border-white/40"
             style={{ color: 'var(--lvbc-primary)' }}
           >
             Browse Sermons

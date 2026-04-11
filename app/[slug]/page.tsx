@@ -22,7 +22,6 @@ export async function generateStaticParams() {
 async function getDocument(slug: string) {
   if (!client) return null
   try {
-    // Try each content type in order of most common
     const testimony = await client.fetch(
       `*[_type == "testimony" && slug.current == $slug][0]{
         _id, title, slug, author, content, contentHtml, language, publishedDate, originalUrl
@@ -67,33 +66,48 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     || (doc._docType === 'sermon' ? `${doc.speaker ? `By ${doc.speaker}` : 'Sermon'} — ${doc.biblePassage || ''}` : '')
     || `${doc.title} — Lehigh Valley Baptist Church`
 
+  const url = `https://lvbaptist.org/${slug}`
+  const ogType = doc._docType === 'testimony' || doc._docType === 'sermon' ? 'article' : 'website'
+
   return {
     title: doc.title,
     description,
-    openGraph: { title: doc.title, description },
+    alternates: { canonical: url },
+    openGraph: {
+      title: doc.title,
+      description,
+      url,
+      type: ogType,
+      ...(doc.publishedDate && { publishedTime: doc.publishedDate }),
+      ...(doc.author && { authors: [doc.author] }),
+    },
+    twitter: {
+      card: 'summary',
+      title: doc.title,
+      description,
+    },
   }
 }
 
 function renderContent(doc: any) {
-  const html = doc.contentHtml || doc.content
-  if (!html) return <p style={{ color: 'var(--text-muted)' }}>Content coming soon.</p>
-
   if (doc.contentHtml) {
     return (
       <div
-        className="prose prose-lg max-w-none leading-relaxed"
-        style={{ color: 'var(--text)' }}
-        dangerouslySetInnerHTML={{ __html: html }}
+        className="prose-content"
+        dangerouslySetInnerHTML={{ __html: doc.contentHtml }}
       />
     )
   }
 
+  const text = doc.content
+  if (!text) return <p style={{ color: 'var(--text-muted)' }}>Content coming soon.</p>
+
   return (
-    <div className="prose prose-lg max-w-none leading-relaxed" style={{ color: 'var(--text)' }}>
-      {html.split('\n\n').map((paragraph: string, i: number) => {
+    <div className="prose-content">
+      {text.split('\n\n').map((paragraph: string, i: number) => {
         const trimmed = paragraph.trim()
         if (!trimmed) return null
-        return <p key={i} className="mb-4">{trimmed}</p>
+        return <p key={i}>{trimmed}</p>
       })}
     </div>
   )
